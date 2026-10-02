@@ -1,7 +1,6 @@
-// Meshy2GLB popup (v1.0.21): Liste (Top-Frame live + alle Frames via
+// Meshy2GLB popup: Liste (Top-Frame live + alle Frames via
 // Background gemergt), Auto-Refresh bei neuen Funden, Speichern-unter
 // (Picker) + Schnell-Download.
-// Defensiv: ein fehlender Button killt nie wieder das ganze Popup.
 (function () {
   'use strict';
 
@@ -22,19 +21,11 @@
   const noticeEl = $('#notice');
   const pillEl = $('#statusPill');
   const diagEl = $('#diag');
-  const licenseViewEl = $('#licenseView');
-  const mainViewEl = $('#mainView');
-  const licBarEl = $('#licBar');
-  const licStatusEl = $('#licStatus');
-  const licErrEl = $('#licenseError');
-  const licInputEl = $('#licenseKey');
   const DBG = { bg: '-', live: '-', bcast: '-', tab: '-' };
   let TAB = null;
   let ITEMS = [];
   let POLL = null;
   let softRunning = false;
-  let LICENSED = false;
-  let BOOTED = false;
 
   function notice(msg, ok) {
     if (!noticeEl) return;
@@ -99,8 +90,7 @@
     return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // Lucide icons (inline SVG, no remote/CDN payload – MV3 CSP verbietet
-  // Remote-Skripte). Original-Pfade von lucide.dev, nur Wrapper gekuerzt.
+  // Lucide icons (inline SVG, no remote/CDN payload – MV3 CSP verbietet Remote-Skripte)
   function lucide(paths) {
     return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide" aria-hidden="true">' + paths + '</svg>';
   }
@@ -130,7 +120,6 @@
   }
 
   async function reloadTab() {
-    if (!(await ensureLicensed())) return;
     if (!TAB || TAB.id == null) { notice('No tab to reload found.'); return; }
     try {
       await chrome.tabs.reload(TAB.id);
@@ -138,182 +127,6 @@
     } catch (e) {
       notice('Reload failed: ' + e.message);
     }
-  }
-
-  // ---- Lizenz-Gate: vor ALLEM prüfen. Ohne gültige Lizenz läuft nichts. ----
-  async function licenseStatus() {
-    try {
-      const r = await chrome.runtime.sendMessage({ type: 'M2G_LICENSE_STATUS' });
-      return r || { licensed: false };
-    } catch (e) { return { licensed: false, reason: 'no-bg' }; }
-  }
-
-  function showLicenseGate(msg) {
-    LICENSED = false;
-    try { if (mainViewEl) mainViewEl.classList.add('hidden'); } catch (e) {}
-    try { if (licenseViewEl) licenseViewEl.classList.remove('hidden'); } catch (e) {}
-    setPill('locked', 'warn');
-    try { if (diagEl) diagEl.textContent = ''; } catch (e) {}
-    if (msg) licError(msg);
-  }
-
-  function showMainUI(st) {
-    LICENSED = true;
-    try { if (licenseViewEl) licenseViewEl.classList.add('hidden'); } catch (e) {}
-    try { if (mainViewEl) mainViewEl.classList.remove('hidden'); } catch (e) {}
-    try {
-      if (licBarEl) licBarEl.classList.remove('hidden');
-      if (licBarEl) licBarEl.classList.toggle('offline', !!(st && st.offline));
-      if (licStatusEl) {
-        let t = 'Licensed' + (st && st.keyMasked ? ' ' + st.keyMasked : '');
-        if (st && st.hwidShort) t += ' · device ' + st.hwidShort;
-        if (st && st.offline) t += ' (offline)';
-        if (st && st.expiresAt) {
-          try { t += ' · until ' + new Date(st.expiresAt).toLocaleDateString(); } catch (e) {}
-        }
-        licStatusEl.textContent = t;
-      }
-    } catch (e) {}
-  }
-
-  function licError(msg) {
-    if (!licErrEl) return;
-    if (!msg) { licErrEl.classList.add('hidden'); licErrEl.textContent = ''; return; }
-    licErrEl.textContent = msg;
-    licErrEl.classList.remove('hidden');
-  }
-
-  async function ensureLicensed() {
-    const st = await licenseStatus();
-    if (st && st.licensed) {
-      if (!LICENSED) showMainUI(st);
-      else if (licBarEl && st.offline) licBarEl.classList.add('offline');
-      return true;
-    }
-    showLicenseGate(st && (st.message || st.reason) ? ('License required' + (st.message ? ': ' + st.message : '')) : null);
-    ITEMS = [];
-    try { render(); } catch (e) {}
-    return false;
-  }
-
-  // Downloads sind der Choke-Point: hier IMMER frisch online pruefen, damit
-  // ein gebannter/pausierter Key sofort stirbt (auch innerhalb der 12h).
-  // Ohne Netz faellt das auf die Grace-Periode zurueck.
-  async function ensureLicensedOnline() {
-    let st = null;
-    try {
-      st = await chrome.runtime.sendMessage({ type: 'M2G_LICENSE_STATUS', online: true });
-    } catch (e) { st = null; }
-    if (st && st.licensed) {
-      if (!LICENSED) showMainUI(st);
-      return true;
-    }
-    return ensureLicensed();
-  }
-
-  async function doActivate() {
-    licError(null);
-    const btn = document.getElementById('activateLicense');
-    const raw = licInputEl ? licInputEl.value : '';
-    const key = String(raw || '').trim();
-    if (!key) { licError('Please enter a license key.'); return; }
-    try {
-      if (btn) { btn.disabled = true; btn.textContent = 'Checking…'; }
-      const r = await chrome.runtime.sendMessage({ type: 'M2G_LICENSE_ACTIVATE', license_key: key });
-      if (r && r.ok && r.licensed !== false) {
-        try { if (licInputEl) licInputEl.value = ''; } catch (e) {}
-        const st = await licenseStatus();
-        showMainUI(st);
-        notice('License activated. Reload the meshy.ai tab, then export a model.', true);
-        await bootMain();
-      } else {
-        licError((r && r.error) || 'Activation failed.');
-      }
-    } catch (e) {
-      licError('Activation failed: ' + String((e && e.message) || e));
-    } finally {
-      try { if (btn) { btn.disabled = false; btn.textContent = 'Activate license'; } } catch (e) {}
-    }
-  }
-
-  async function openBuyPage() {
-    const url = 'https://nino-dev.de';
-    try {
-      await chrome.tabs.create({ url: url });
-      window.close();
-    } catch (e) {
-      try { window.open(url, '_blank'); } catch (e2) {}
-    }
-  }
-
-  async function doLogout() {
-    try { await chrome.runtime.sendMessage({ type: 'M2G_LICENSE_LOGOUT' }); } catch (e) {}
-    ITEMS = [];
-    try { if (POLL) clearInterval(POLL); POLL = null; } catch (e) {}
-    showLicenseGate(null);
-    render();
-  }
-
-  async function init() {
-    on('activateLicense', 'click', doActivate);
-    on('buyLicense', 'click', openBuyPage);
-    try {
-      const bl = document.getElementById('buyLink');
-      if (bl) bl.addEventListener('click', (e) => { try { e.preventDefault(); } catch (e2) {} openBuyPage(); });
-    } catch (e) {}
-    on('logoutLicense', 'click', doLogout);
-    try {
-      if (licInputEl) licInputEl.addEventListener('keydown', (e) => {
-        if (e && e.key === 'Enter') doActivate();
-      });
-    } catch (e) {}
-    const st = await licenseStatus();
-    if (!st || !st.licensed) {
-      on('refresh', 'click', ensureLicensed);
-      on('reloadTab', 'click', ensureLicensed);
-      on('clear', 'click', ensureLicensed);
-      on('openMeshy', 'click', openMeshy);
-      showLicenseGate(st && st.message ? st.message : null);
-      render();
-      return;
-    }
-    showMainUI(st);
-    await bootMain();
-  }
-
-  async function bootMain() {
-    if (BOOTED) {
-      try {
-        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-        TAB = tabs && tabs[0];
-      } catch (e) {}
-      try { if (!POLL) POLL = setInterval(softRefresh, 2500); } catch (e) {}
-      await load();
-      return;
-    }
-    BOOTED = true;
-    on('refresh', 'click', load);
-    on('reloadTab', 'click', reloadTab);
-    on('clear', 'click', clearAll);
-    on('openMeshy', 'click', openMeshy);
-    try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      TAB = tabs && tabs[0];
-    } catch (e) { TAB = null; }
-    if (!TAB) { setPill('no tab', 'warn'); notice('Active tab not found.'); return; }
-    await load();
-    // Live-Updates: Liste füllt sich von selbst, sobald im Meshy-Tab
-    // etwas erfasst wird (auch bei bereits geöffnetem Popup).
-    try {
-      chrome.storage.onChanged.addListener((changes, area) => {
-        if (area !== 'session' || !TAB || TAB.id == null) return;
-        if (changes['m2g_tab_' + TAB.id]) softRefresh();
-      });
-    } catch (e) {}
-    try {
-      POLL = setInterval(softRefresh, 2500);
-      window.addEventListener('unload', () => { try { clearInterval(POLL); } catch (e) {} });
-    } catch (e) {}
   }
 
   function isMeshyUrl(u) {
@@ -340,8 +153,8 @@
     return (res.captures || []).map((c) => Object.assign({ frameId: 0 }, c));
   }
 
-  // Broadcast an ALLE Frames (ohne frameId): f Leere Faelle ab, in denen das
-  // Modell in einem iframe-Viewer entschluesselt wurde.
+  // Broadcast an ALLE Frames (ohne frameId): fängt Fälle ab, in denen das
+  // Modell in einem iframe-Viewer entschlüsselt wurde.
   async function liveBroadcastList() {
     const res = await sendMsg({ type: 'M2G_LIST' }, {});
     if (!res || !res.ok) throw new Error((res && res.error) || 'no response (broadcast)');
@@ -352,10 +165,6 @@
   async function bgList() {
     try {
       const res = await chrome.runtime.sendMessage({ type: 'M2G_GET_TAB_CAPTURES', tabId: TAB.id });
-      if (res && res.error === 'unlicensed') {
-        showLicenseGate('License expired or revoked. Please re-activate.');
-        return [];
-      }
       if (res && res.ok && res.captures) return res.captures;
     } catch (e) {}
     return [];
@@ -380,7 +189,6 @@
   }
 
   async function load() {
-    if (!(await ensureLicensed())) return;
     notice(null);
     if (!TAB || !isMeshyUrl(TAB.url || '')) {
       setPill('not on Meshy', 'warn');
@@ -392,14 +200,14 @@
     setPill('Meshy tab', 'ok');
     ITEMS = await mergedList();
     if (!ITEMS.length) {
-      // Pruefen, ob das Content-Skript ueberhaupt erreichbar ist.
+      // Prüfen, ob das Content-Skript überhaupt erreichbar ist.
       try {
         const res = await chrome.tabs.sendMessage(TAB.id, { type: 'M2G_LIST' }, { frameId: 0 });
         if (!res || !res.ok) throw new Error('no-contact');
       } catch (e) {
         if (isConnErr(e)) {
           render();
-          notice('No contact to the Meshy tab: Skript fehlt (Tab war vor der Installation offen). Unten auf „Reload tab“, dann Modell öffnen/exportieren – die Liste füllt sich von selbst.');
+          notice('No contact to the Meshy tab: Script missing (tab was open before installation). Click "Reload tab" below, then open/export a model.');
           return;
         }
       }
@@ -412,9 +220,8 @@
   }
 
   // Leiser Refresh für Polling + Storage-Events: rendert nur neu, wenn
-  // sich die Fund-Liste geändert hat (stört keinen laufenden Download).
+  // sich die Fund-Liste geändert hat.
   async function softRefresh() {
-    if (!LICENSED) return;
     if (softRunning || !TAB || TAB.id == null) return;
     try {
       if (document.querySelector('.btn:disabled')) return;
@@ -465,9 +272,6 @@
   }
 
   // Fetch the buffer from the frame that reported it, in base64 chunks.
-  // (ArrayBuffer cannot travel through chrome.* messaging - it arrived as
-  // {} and Blob() turned it into the 15-byte string "[object Object]".
-  // Base64 strings survive every hop intact.)
   function b64ToBytes(b64) {
     var bin = atob(b64 || "");
     var len = bin.length;
@@ -475,6 +279,7 @@
     for (var i = 0; i < len; i++) out[i] = bin.charCodeAt(i);
     return out;
   }
+
   async function getBuffer(item) {
     const payload = { type: 'M2G_GET_BUFFER', id: item.id };
     const frames = [];
@@ -512,7 +317,6 @@
   }
 
   // Parse just the JSON chunk of a GLB (material -> texture-slot mapping).
-  // Returns the doc object or null.
   function parseGLBDoc(buffer) {
     try {
       var dv = new DataView(buffer);
@@ -532,8 +336,7 @@
     return null;
   }
 
-  // Extract embedded images from a GLB (JSON chunk -> images/bufferViews
-  // -> BIN chunk). Returns [{bytes, mime, name}]. data:-URI images included.
+  // Extract embedded images from a GLB (JSON chunk -> images/bufferViews -> BIN chunk).
   function parseGLBImages(buffer) {
     var out = [];
     try {
@@ -611,7 +414,6 @@
 
   // One click: GLB plus every embedded texture as extra PNG file.
   async function glbPlusPng(item, btn) {
-    if (!(await ensureLicensedOnline())) return;
     lock(btn, true, 'Loading...');
     try {
       const got = await getBuffer(item);
@@ -635,9 +437,7 @@
   }
 
   // One click: model.glb + every embedded texture as PNG, bundled in one .zip.
-  // Pure local code (vendored M2GZip, no CDN) - same sources as GLB + PNG.
   async function zipBundle(item, btn) {
-    if (!(await ensureLicensedOnline())) return;
     if (typeof M2GZip === 'undefined' || !M2GZip.create) {
       notice('ZIP engine missing - reload the extension (chrome://extensions).');
       return;
@@ -682,7 +482,6 @@
   }
 
   async function saveAs(item, btn) {
-    if (!(await ensureLicensedOnline())) return;
     lock(btn, true, 'Picker...');
     try {
       let handle = null;
@@ -700,7 +499,9 @@
       }
       lock(btn, true, 'Loading model...');
       const got = await getBuffer(item);
-      if (!(got.buffer instanceof ArrayBuffer)) throw new Error("Incomplete model data - reload the Meshy tab, reopen the model, then try again."); if (got.buffer.byteLength < 12 || new DataView(got.buffer, 0, 4).getUint32(0, true) !== 0x46546C67) throw new Error("No GLB data received - reload the Meshy tab, reopen the model, then try again."); const blob = new Blob([got.buffer], { type: 'model/gltf-binary' });
+      if (!(got.buffer instanceof ArrayBuffer)) throw new Error("Incomplete model data - reload the Meshy tab, reopen the model, then try again.");
+      if (got.buffer.byteLength < 12 || new DataView(got.buffer, 0, 4).getUint32(0, true) !== 0x46546C67) throw new Error("No GLB data received - reload the Meshy tab, reopen the model, then try again.");
+      const blob = new Blob([got.buffer], { type: 'model/gltf-binary' });
       if (handle) {
         lock(btn, true, 'Writing file...');
         const w = await handle.createWritable();
@@ -730,11 +531,12 @@
   }
 
   async function quick(item, btn) {
-    if (!(await ensureLicensedOnline())) return;
     lock(btn, true, 'Loading...');
     try {
       const got = await getBuffer(item);
-      if (!(got.buffer instanceof ArrayBuffer)) throw new Error("Incomplete model data - reload the Meshy tab, reopen the model, then try again."); if (got.buffer.byteLength < 12 || new DataView(got.buffer, 0, 4).getUint32(0, true) !== 0x46546C67) throw new Error("No GLB data received - reload the Meshy tab, reopen the model, then try again."); const blob = new Blob([got.buffer], { type: 'model/gltf-binary' });
+      if (!(got.buffer instanceof ArrayBuffer)) throw new Error("Incomplete model data - reload the Meshy tab, reopen the model, then try again.");
+      if (got.buffer.byteLength < 12 || new DataView(got.buffer, 0, 4).getUint32(0, true) !== 0x46546C67) throw new Error("No GLB data received - reload the Meshy tab, reopen the model, then try again.");
+      const blob = new Blob([got.buffer], { type: 'model/gltf-binary' });
       const url = URL.createObjectURL(blob);
       try {
         if (chrome.downloads) {
@@ -756,7 +558,6 @@
   }
 
   async function clearAll() {
-    if (!(await ensureLicensed())) return;
     notice(null);
     try {
       if (TAB && TAB.id != null) {
@@ -768,6 +569,29 @@
     ITEMS = [];
     setPill('Meshy tab', 'ok');
     render();
+  }
+
+  async function init() {
+    on('refresh', 'click', load);
+    on('reloadTab', 'click', reloadTab);
+    on('clear', 'click', clearAll);
+    on('openMeshy', 'click', openMeshy);
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      TAB = tabs && tabs[0];
+    } catch (e) { TAB = null; }
+    if (!TAB) { setPill('no tab', 'warn'); notice('Active tab not found.'); return; }
+    await load();
+    try {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area !== 'session' || !TAB || TAB.id == null) return;
+        if (changes['m2g_tab_' + TAB.id]) softRefresh();
+      });
+    } catch (e) {}
+    try {
+      POLL = setInterval(softRefresh, 2500);
+      window.addEventListener('unload', () => { try { clearInterval(POLL); } catch (e) {} });
+    } catch (e) {}
   }
 
   if (document.readyState === 'loading') {

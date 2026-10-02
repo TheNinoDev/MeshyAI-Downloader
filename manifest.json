@@ -2,30 +2,17 @@
   "manifest_version": 3,
   "name": "Meshy2GLB - GLB Downloader",
   "version": "1.2.5",
-  "description": "Capture decrypted GLB models on meshy.ai and save them via the extension popup with a Save-As picker. Requires a license key.",
+  "description": "Capture decrypted GLB models on meshy.ai and save them via the extension popup with a Save-As picker.",
   "permissions": [
     "downloads",
     "storage",
     "activeTab",
-    "scripting",
-    "alarms",
-    "declarativeNetRequest",
-    "declarativeNetRequestWithHostAccess"
+    "scripting"
   ],
   "host_permissions": [
     "https://meshy.ai/*",
-    "https://*.meshy.ai/*",
-    "https://pwfauth.com/*"
+    "https://*.meshy.ai/*"
   ],
-  "declarative_net_request": {
-    "rule_resources": [
-      {
-        "id": "license",
-        "enabled": true,
-        "path": "rules/license-csrf.json"
-      }
-    ]
-  },
   "background": {
     "service_worker": "background.js"
   },

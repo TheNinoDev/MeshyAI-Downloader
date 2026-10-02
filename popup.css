@@ -63,9 +63,7 @@ body {
 }
 /* Lucide icons erben die Button-/Textfarbe */
 .lucide { width: 1.1em; height: 1.1em; flex: 0 0 auto; }
-.lic-icon { color: #00e676; }
-.lic-icon .lucide { width: 38px; height: 38px; }
-.empty-icon { color: #b9aef5; }
+.empty-icon { color: #b9aef5; font-size: 40px; }
 .empty-icon .lucide { width: 42px; height: 42px; }
 .btn:active { transform: scale(0.97); }
 .btn:disabled { opacity: 0.55; cursor: wait; }
@@ -77,39 +75,8 @@ body {
 .btn.ghost:hover { background: #1e1860; color: #fff; }
 .btn.danger:hover { border-color: #e57373; color: #ef9a9a; }
 .empty { padding: 26px 22px; text-align: center; }
-.empty-icon { font-size: 40px; }
 .empty h2 { margin: 8px 0 10px; font-size: 15px; }
 .empty ol { text-align: left; color: #b9aef5; font-size: 12.5px; line-height: 1.7; margin: 0 0 14px; padding-left: 20px; }
 .foot { display: flex; gap: 8px; padding: 4px 12px 6px; }
 .hint { margin: 2px 14px 14px; font-size: 11px; color: #8f83d8; line-height: 1.5; }
 .ver { margin: 0 14px 2px; font-size: 10px; color: #6f63b8; text-align: right; }
-.license { padding: 16px 14px 8px; }
-.lic-card {
-  background: #1a1440; border: 1px solid #4a3fa3; border-radius: 14px;
-  padding: 20px 16px; text-align: center;
-}
-.lic-icon { color: #00e676; }
-.lic-card h2 { margin: 8px 0 6px; font-size: 16px; }
-.lic-sub { margin: 0 0 12px; font-size: 12px; color: #b9aef5; line-height: 1.55; }
-.lic-input {
-  width: 100%; padding: 10px 12px; border-radius: 9px;
-  border: 1px solid #4a3fa3; background: #0f0c1d; color: #fff;
-  font-size: 13px; font-weight: 700; letter-spacing: 0.4px; text-align: center;
-}
-.lic-input:focus { outline: none; border-color: #00e676; }
-.lic-btn { width: 100%; margin-top: 10px; }
-.lic-error {
-  margin-top: 10px; padding: 8px 10px; border-radius: 8px; font-size: 12px;
-  background: #3a140f; border: 1px solid #b04a3a; color: #ffd9d2;
-}
-.lic-hint { margin: 12px 0 0; font-size: 11px; color: #8f83d8; line-height: 1.5; }
-.lic-hint a { color: #00e676; font-weight: 800; }
-.lic-bar {
-  display: flex; align-items: center; gap: 8px;
-  margin: 10px 12px 0; padding: 6px 9px;
-  background: #063d24; border: 1px solid #00e676; border-radius: 9px;
-  font-size: 11px; color: #c9ffe2;
-}
-.lic-bar.offline { background: #4a2b00; border-color: #ffb74d; color: #ffe2b8; }
-.lic-status { flex: 1 1 auto; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.btn.small { font-size: 11px; padding: 5px 9px; }

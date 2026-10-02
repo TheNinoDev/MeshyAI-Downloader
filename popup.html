@@ -26,24 +26,6 @@
 
   <div id="diag" class="diag"></div>
 
-  <section id="licenseView" class="license">
-    <div class="lic-card">
-      <div class="lic-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide" aria-hidden="true"><path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z" /><circle cx="16.5" cy="7.5" r=".5" fill="currentColor" /></svg></div>
-      <h2>License required</h2>
-      <p class="lic-sub">Enter your license key to unlock Meshy2GLB on <b>this device</b> (1 device per key).<br />Nothing is captured or saved before activation.</p>
-      <input id="licenseKey" class="lic-input" type="text" placeholder="PWF-XXXX-XXXX-XXXX" autocomplete="off" spellcheck="false" />
-      <button id="activateLicense" class="btn primary lic-btn">Activate license</button>
-      <button id="buyLicense" class="btn secondary lic-btn"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide" aria-hidden="true"><rect width="20" height="14" x="2" y="5" rx="2" /><line x1="2" x2="22" y1="10" y2="10" /><path d="M6 14h2" /></svg><span>Buy a license</span></button>
-      <div id="licenseError" class="lic-error hidden"></div>
-      <p class="lic-hint">No key yet? <a id="buyLink" href="https://nino-dev.de" target="_blank" rel="noopener">Get one here</a>. One key works on one device – activating elsewhere moves the license there. Checked online via pwfauth.com (re-checked every 12h).</p>
-    </div>
-  </section>
-
-  <div id="mainView" class="hidden">
-  <div id="licBar" class="lic-bar hidden">
-    <span id="licStatus" class="lic-status">Licensed</span>
-    <button id="logoutLicense" class="btn ghost small" title="Remove license from this browser">Sign out</button>
-  </div>
   <main id="list" class="list"></main>
 
   <div id="empty" class="empty">
@@ -62,9 +44,8 @@
     <button id="reloadTab" class="btn ghost" title="Reload the Meshy tab (re-arm hooks)">Reload tab</button>
     <button id="clear" class="btn ghost danger" title="Forget captured models">Clear</button>
   </footer>
-  <p class="ver">Meshy2GLB v1.2.5 – licensed (1 device)</p>
+  <p class="ver">Meshy2GLB v1.2.5</p>
   <p class="hint"><b>Save as...</b> asks for folder &amp; filename. <b>Quick</b> goes straight to Downloads. <b>GLB + PNG</b> also saves embedded textures as extra PNG files. <b>ZIP</b> bundles model.glb + textureN.png into one file. Need Roblox-ready <b>FBX</b> (fixed UVs, baked maps, rig)? Save GLB + PNG, then run <b>fixer/FixerGUI.bat</b> (Blender portable works, no install).</p>
-  </div>
 
   <script src="zip.js"></script>
   <script src="popup.js"></script>

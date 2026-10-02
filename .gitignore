@@ -1,0 +1,33 @@
+# Chrome Extension unpacked metadata
+_metadata/
+
+# Build artifacts & archives
+*.zip
+*.tar.gz
+*.rar
+
+# Python cache & environments
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+
+# Portable Blender (if unpacked locally)
+fixer/blender-portable/
+blender-portable/
+
+# Operating System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+
+# Editor & IDE configurations
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
